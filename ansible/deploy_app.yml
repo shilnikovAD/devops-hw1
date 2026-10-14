@@ -1,0 +1,6 @@
+---
+- name: Деплой приложения
+  hosts: app
+  become: true
+  roles:
+    - app

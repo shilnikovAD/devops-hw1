@@ -1,0 +1,39 @@
+---
+# На хосте после семинара стоит системный nginx, он занимает порт 80.
+# Порт 80 должен принадлежать контейнеру-прокси, поэтому выключаем его.
+- name: Остановить и отключить системный nginx (освободить порт 80)
+  ansible.builtin.systemd_service:
+    name: nginx
+    state: stopped
+    enabled: false
+  failed_when: false
+
+- name: Создать каталог /opt/app
+  ansible.builtin.file:
+    path: /opt/app
+    state: directory
+    owner: "{{ deployer_user }}"
+    group: "{{ deployer_user }}"
+    mode: "0755"
+
+- name: Скопировать compose-проект на VM
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../compose/"
+    dest: /opt/app/
+    owner: "{{ deployer_user }}"
+    group: "{{ deployer_user }}"
+    mode: u=rwX,g=rX,o=rX
+
+- name: Поднять сервисы (docker compose up -d)
+  community.docker.docker_compose_v2:
+    project_src: /opt/app
+    state: present
+
+- name: Проверить, что прокси отдаёт Hello World
+  ansible.builtin.uri:
+    url: http://127.0.0.1/
+    return_content: true
+  register: page
+  until: "'Hello World' in page.content"
+  retries: 5
+  delay: 3
