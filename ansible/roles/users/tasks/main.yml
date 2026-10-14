@@ -1,0 +1,26 @@
+---
+- name: Создать группу docker
+  ansible.builtin.group:
+    name: docker
+    state: present
+
+- name: Создать пользователя deployer
+  ansible.builtin.user:
+    name: "{{ deployer_user }}"
+    shell: /bin/bash
+    groups: docker
+    append: true
+    state: present
+
+- name: Добавить SSH-ключ пользователю deployer
+  ansible.posix.authorized_key:
+    user: "{{ deployer_user }}"
+    key: "{{ lookup('file', deployer_pubkey_file) }}"
+    state: present
+
+- name: Разрешить sudo без пароля для deployer
+  ansible.builtin.copy:
+    dest: "/etc/sudoers.d/90-{{ deployer_user }}"
+    content: "{{ deployer_user }} ALL=(ALL) NOPASSWD:ALL\n"
+    mode: "0440"
+    validate: /usr/sbin/visudo -cf %s

@@ -1,0 +1,6 @@
+---
+- name: Подготовка хоста
+  hosts: app
+  become: true
+  roles:
+    - users
